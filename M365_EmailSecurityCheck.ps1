@@ -5,7 +5,7 @@ if (!$installedModule -or $installedModule.Version -lt '3.1.0') {
     Install-Module -Name ExchangeOnlineManagement -RequiredVersion 3.1.0 -Force
 }
 
-
+#Connect to Exchange Online and Grab Domains
 Connect-ExchangeOnline -ShowBanner:$false
 $TenantName = (Get-OrganizationConfig).Name
 Write-Output "Tenant name: $TenantName"
@@ -45,6 +45,7 @@ foreach ($Domain in $Domains) {
     if (!$spf) {
         $missingRecords += "SPF for $Domain"
     }
+
    # Output results for current domain
    Write-Output "---------------------- $Domain ----------------------"
    Write-Output "DKIM Selector 1 CNAME Record:"
@@ -59,6 +60,7 @@ foreach ($Domain in $Domains) {
    Write-Output "SPF TXT Record:"
    Write-Output "$spf"
    Write-Output "-----------------------------------------------------`n`n"
+
 # Check DKIM signing configuration and prompt user if it's disabled
 Write-Output "---------------------- Checking DKIM Signing Config ----------------------"
 $dkimConfig = Get-DKIMSigningConfig -Identity $Domain
@@ -78,7 +80,7 @@ Write-Output "-----------------------------------------------------`n`n"
 
 }
     
-    # Output results for current domain
+# Output results for current domain
     Write-Output "---------------------- $Domain ----------------------"
     Write-Output "DKIM Selector 1 CNAME Record:"
     Write-Output "$dkimselector1"
