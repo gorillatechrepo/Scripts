@@ -10,13 +10,10 @@ Connect-ExchangeOnline -ShowBanner:$false
 $TenantName = (Get-OrganizationConfig).Name
 Write-Output "Tenant name: $TenantName"
 #Grab all accepted domains
-$Domains = $Domains = Get-AcceptedDomain | Where-Object {$_.Default -eq 'True'}| Select-Object -ExpandProperty  DomainName
+$Domains = $Domains = Get-AcceptedDomain | Select-Object -ExpandProperty  DomainName
 $Domains
 Write-Output "Accepted domains: $Domains"
-#Check DKIM & DMARC
-# Verify DKIM and DMARC records.
-Write-Output "-------- DKIM and DMARC DNS Records Report --------"
-Write-Output ""
+
 
 # Initialize variables for missing DNS records
 $missingRecords = @()
@@ -48,7 +45,37 @@ foreach ($Domain in $Domains) {
     if (!$spf) {
         $missingRecords += "SPF for $Domain"
     }
-   
+   # Output results for current domain
+   Write-Output "---------------------- $Domain ----------------------"
+   Write-Output "DKIM Selector 1 CNAME Record:"
+   Write-Output "$dkimselector1"
+   Write-Output ""
+   Write-Output "DKIM Selector 2 CNAME Record:"
+   Write-Output "$dkimselector2"
+   Write-Output ""
+   Write-Output "DMARC TXT Record:"
+   Write-Output "$dmarc"
+   Write-Output ""
+   Write-Output "SPF TXT Record:"
+   Write-Output "$spf"
+   Write-Output "-----------------------------------------------------`n`n"
+# Check DKIM signing configuration and prompt user if it's disabled
+Write-Output "---------------------- Checking DKIM Signing Config ----------------------"
+$dkimConfig = Get-DKIMSigningConfig -Identity $Domain
+if ($dkimConfig.Enabled -eq $false) {
+   Write-Output "DKIM signing is disabled for domain $Domain"
+   $EnableDKIM= Read-Host "Do you want to enable DKIM signing for this domain? (yes or no)"
+   if ($EnableDKIM.ToLower() -eq 'yes') {
+       Write-Output "Enabling DKIM for domain $Domain"
+       Set-DkimSigningConfig -Identity $Domain -Enabled $true
+   } else {
+       Write-Output "DKIM signing will remain disabled for domain $Domain."
+   }
+} else {
+   Write-Output "DKIM signing is already enabled for domain $Domain."
+}
+Write-Output "-----------------------------------------------------`n`n"
+
 }
     
     # Output results for current domain
@@ -72,7 +99,7 @@ foreach ($Domain in $Domains) {
     Write-Output "DKIM signing is disabled for domain $Domain"
     $EnableDKIM= Read-Host "Do you want to enable DKIM signing for this domain? (yes or no)"
     if ($EnableDKIM.ToLower() -eq 'yes') {
-        Write-Output "Enabling DKIM for domain $Domain"
+        Write-Output "Enabling DKI M for domain $Domain"
         Set-DkimSigningConfig -Identity $Domain -Enabled $true
     } else {
         Write-Output "DKIM signing will remain disabled for domain $Domain."
@@ -99,6 +126,8 @@ foreach ($Domain in $Domains) {
     $Result += "DKIM`t$Domain`tCNAME`tselector1._domainkey`tselector1-$($Domain -replace "\.", "-")._domainkey.$TenantName`t3600`n"
     $Result += "DKIM`t$Domain`tCNAME`tselector2._domainkey`tselector2-$($Domain -replace "\.", "-")._domainkey.$TenantName`t3600`n"
     $Result += "DMARC`t$Domain`tTXT`t_dmarc`tv=DMARC1; p=none; pct=100; rua=mailto:$ReportMailbox; ruf=mailto:$ReportMailbox; fo=1`t3600`n"
+
+    
 }
         Write-Output "CSV file generated and loaded to your clipboar. Open Excel and hit Ctrl+V"
     } else {
