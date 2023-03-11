@@ -6,7 +6,7 @@ if (!$installedModule -or $installedModule.Version -lt '3.1.0') {
 }
 
 
-Connect-ExchangeOnline
+Connect-ExchangeOnline -ShowBanner:$false
 $TenantName = (Get-OrganizationConfig).Name
 Write-Output "Tenant name: $TenantName"
 #Grab all accepted domains
